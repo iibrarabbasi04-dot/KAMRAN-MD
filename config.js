@@ -32,8 +32,8 @@ const ZIDDI = {
     // JID .cinfo / channel-jid command se mil jata hai (120363xxxxxxxxxx@newsletter)
     NEWSLETTER_JID: "",
 
-    // Website ("Pair code lo" button): apni pairing site ka link. Khali = button sirf message dikhayega.
-    PAIR_URL: "",
+    // Ziddi Power pairing site ka link (Render URL), jaise https://ziddi-power.onrender.com  — "Pair code lo" button wahin bhejega.
+    PAIR_URL: "https://ziddi-power.onrender.com",
     SUPPORT_TELEGRAM: "@ZiddiBoySupport",
 
     REPO_URL: "",                       // optional: apni GitHub repo ka link
@@ -135,6 +135,26 @@ cmd({ pattern: 'joinchannels', desc: 'Join Ziddi channels', category: 'owner', o
     }
 })();
 
+
+/* ---------- SESSION_ID: "ZIDDI:~..." (Ziddi Power pairing site wali) ya purani Mega ID dono chalti hain ---------- */
+let SESSION_FOR_BOT = process.env.SESSION_ID || "";
+(function ziddiSession() {
+    try {
+        const m = SESSION_FOR_BOT.trim().match(/^[A-Za-z0-9_-]*:~([A-Za-z0-9+\/=]+)$/);
+        if (!m) return;
+        const dir = path.join(__dirname, "sessions");
+        fs.mkdirSync(dir, { recursive: true });
+        const f = path.join(dir, "creds.json");
+        if (!fs.existsSync(f)) {
+            const raw = Buffer.from(m[1], "base64");
+            JSON.parse(raw.toString("utf8")); // valid JSON hai ya nahi
+            fs.writeFileSync(f, raw);
+            console.log("[ZIDDI] Session loaded from SESSION_ID ✅");
+        }
+        SESSION_FOR_BOT = ""; // Mega se download wala raasta band (creds file already ready)
+    } catch (e) { console.log("[ZIDDI] SESSION_ID galat hai:", e.message); }
+})();
+
 /* ---------- Ziddi website (bot ke "/" page ko replace karta hai) ---------- */
 const BOOT_TIME = Date.now();
 function ziddiPage() {
@@ -206,7 +226,7 @@ function toast(x){var e=document.getElementById('toast');e.textContent=x;e.style
 document.getElementById('go').onclick=function(){var n=document.getElementById('n').value.replace(/[^0-9]/g,'');
 if(n.length<10){toast('Sahi number likho: 92XXXXXXXXXX');return}
 if(!C.pair){toast('Pairing server abhi link nahi hai (PAIR_URL set karo)');return}
-location.href=C.pair+(C.pair.indexOf('?')>-1?'&':'?')+'number='+n};
+location.href=C.pair.replace(/[\/]+$/,'')+'/?server=2&number='+n};
 </script></body></html>`;
 }
 
@@ -232,7 +252,7 @@ location.href=C.pair+(C.pair.indexOf('?')>-1?'&':'?')+'number='+n};
 
 module.exports = {
     // ===== BOT CORE SETTINGS =====
-    SESSION_ID: process.env.SESSION_ID || "",  // Your bot's session ID (keep it secure)
+    SESSION_ID: SESSION_FOR_BOT,  // Your bot's session ID (keep it secure)
     PREFIX: getConfig("PREFIX") || ".",  // Command prefix (e.g., "., / ! * - +")
     CHATBOT: getConfig("CHATBOT") || "on", // on/off chat bot 
     BOT_NAME: getConfig("BOT_NAME") || ZIDDI.BOT_NAME,  // Bot's display name (command se badlo to wo chalega)
